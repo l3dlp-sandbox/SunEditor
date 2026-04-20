@@ -206,6 +206,10 @@ class UIManager {
 		const rtl = dir === 'rtl';
 		if (this.#options.get('_rtl') === rtl) return;
 
+		const prevDir = this.#options.get('textDirection');
+		const prevEditableClass = this.#options.get('_editableClass');
+		const prevPrintClass = this.#options.get('printClass');
+
 		try {
 			this.#options.set('_rtl', rtl);
 			this.#options.set('textDirection', dir);
@@ -286,6 +290,9 @@ class UIManager {
 			else if (this.#store.mode.isSubBalloon) this.#$.subToolbar._showBalloon();
 		} catch (e) {
 			this.#options.set('_rtl', !rtl);
+			this.#options.set('textDirection', prevDir);
+			this.#options.set('_editableClass', prevEditableClass);
+			if (prevPrintClass !== null) this.#options.set('printClass', prevPrintClass);
 			console.warn(`[SUNEDITOR.ui.setDir.fail] ${e.toString()}`);
 		}
 
