@@ -316,7 +316,7 @@ class PluginManager {
 					return {
 						target: element,
 						launcher: {
-							destroy: (target) => {
+							componentDestroy: (target) => {
 								const focusEl = target.previousElementSibling || target.nextElementSibling;
 								dom.utils.removeItem(target);
 								// focus

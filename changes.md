@@ -20,6 +20,7 @@
 
 ### fix
 
+- pageBreak 컴포넌트를 클릭해 선택한 뒤 Delete/Backspace로 삭제되지 않던 문제 — 컴포넌트 삭제 훅이 `destroy`에서 `componentDestroy`로 리네임되었으나 pageBreak launcher만 옛 이름을 유지해 발생
 - SelectMenu: `left`/`right` 모드에서 좌우 flip이 좌표계 혼합으로 동작하지 않던 문제
 - `list-style-position: inside`로 변경 — 글머리기호가 바깥으로 넘치지 않도록
 - 컨트롤러가 wysiwyg-inner 내부 스크롤로 target이 가시 영역을 벗어나도 hide되지 않거나 에디터 가장자리에 걸려있던 문제 수정
