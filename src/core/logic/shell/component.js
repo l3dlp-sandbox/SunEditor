@@ -65,8 +65,10 @@ class Component {
 		this.currentTarget = null;
 
 		/**
-		 * @description Currently selected component plugin instance
-		 * @type {*}
+		 * @description Currently selected component plugin instance (a full plugin) or a
+		 * launcher stand-in for non-plugin components (e.g. `pageBreak`). Consumers call the
+		 * shared component hooks (`componentDestroy`/`componentSelect`/`componentDeselect`) on it.
+		 * @type {?SunEditor.ComponentLauncher}
 		 */
 		this.currentPlugin = null;
 

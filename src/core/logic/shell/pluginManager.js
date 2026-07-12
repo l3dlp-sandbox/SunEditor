@@ -313,18 +313,18 @@ class PluginManager {
 			this.#componentCheckers.push(
 				function (focusManager, history, element) {
 					if (!element || !dom.utils.hasClass(element, 'se-page-break')) return null;
-					return {
-						target: element,
-						launcher: {
-							componentDestroy: (target) => {
-								const focusEl = target.previousElementSibling || target.nextElementSibling;
-								dom.utils.removeItem(target);
-								// focus
-								focusManager.focusEdge(focusEl);
-								history.push(false);
-							},
+					// Typed as an assignment (not a cast) so a mis-named hook (e.g. `destroy`) is a tsc excess-property error.
+					/** @type {SunEditor.ComponentLauncher} */
+					const launcher = {
+						componentDestroy: (target) => {
+							const focusEl = target.previousElementSibling || target.nextElementSibling;
+							dom.utils.removeItem(target);
+							// focus
+							focusManager.focusEdge(focusEl);
+							history.push(false);
 						},
 					};
+					return { target: element, launcher };
 				}.bind(null, this.#$.focusManager, this.#$.history),
 			);
 		}
