@@ -25,6 +25,8 @@ const ADD_OFFSET_VALUE = { left: 0, right: 0, top: 0 };
  * @property {"top"|"bottom"} [position="bottom"] Controller position
  * @property {boolean} [isWWTarget=true] If the controller is in the WYSIWYG area, set it to `true`.
  * @property {() => void} [initMethod=null] Method to be called when the controller is closed.
+ * @property {() => boolean} [escGuard=null] Called on ESC before the controller closes. Return `true`
+ * to keep it open (e.g. when an inner sub-panel should absorb the ESC instead).
  * @property {boolean} [disabled=false] If `true`, When the `controller` is opened, buttons without the `se-component-enabled` class are disabled.
  * @property {Array<Controller|HTMLElement>} [parents=[]] The parent `controller` instance array when `controller` is opened nested.
  * @property {boolean} [parentsHide=false] If `true`, the parent element is hidden when the controller is opened.
@@ -45,6 +47,7 @@ class Controller {
 	#$;
 
 	#initMethod;
+	#escGuard;
 	#globalEventHandlers;
 
 	#addOffset = ADD_OFFSET_VALUE;
@@ -98,6 +101,7 @@ class Controller {
 		this.__offset = {};
 
 		this.#initMethod = typeof params.initMethod === 'function' ? params.initMethod : null;
+		this.#escGuard = typeof params.escGuard === 'function' ? params.escGuard : null;
 		this.#globalEventHandlers = {
 			keydown: this.#CloseListener_keydown.bind(this),
 			mousedown: this.#CloseListener_mousedown.bind(this),
@@ -609,6 +613,7 @@ class Controller {
 			if (this.#$.pluginManager.fileInfo.pluginRegExp.test(this.kind)) return;
 		} else {
 			if (this.#__childrenControllers__.some(({ isOpen }) => isOpen)) return;
+			if (this.#escGuard?.()) return;
 		}
 
 		this.#PostCloseEvent(eventTarget);

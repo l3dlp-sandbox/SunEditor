@@ -134,6 +134,14 @@ class CommandMenu {
 				this.#unregisterAll();
 				userClose?.();
 			},
+			subEscMethod: () => {
+				if (!this.#flyoutState) return false;
+				const anchorLi = this.#flyoutState.anchorLi;
+				this.#closeFlyout();
+				const idx = anchorLi ? Number(anchorLi.getAttribute('data-index')) : NaN;
+				if (!Number.isNaN(idx)) this.selectMenu.setItem(idx);
+				return true;
+			},
 		});
 	}
 
@@ -327,6 +335,15 @@ class CommandMenu {
 	close() {
 		this.#unregisterAll();
 		this.selectMenu.close();
+	}
+
+	/**
+	 * @description Whether a sub-panel (native submenu or dropdown-free flyout) is currently open.
+	 * Lets an owning Controller keep the menu open on ESC and close only the sub-panel.
+	 * @returns {boolean}
+	 */
+	hasOpenSubPanel() {
+		return this.selectMenu.hasOpenSubmenu() || !!this.#flyoutState;
 	}
 
 	/**

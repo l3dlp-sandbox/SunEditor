@@ -16,6 +16,9 @@ const MENU_MIN_HEIGHT = 38;
  * @property {number} [splitNum=0] Optional split number for horizontal positioning; defines how many items per row
  * @property {() => void} [openMethod] Optional method to call when the menu is opened
  * @property {() => void} [closeMethod] Optional method to call when the menu is closed
+ * @property {() => boolean} [subEscMethod] Optional owner hook invoked on ESC before the menu closes.
+ * Return `true` if it dismissed an owner-managed sub-panel (e.g. CommandMenu's flyout), so ESC only
+ * closes that sub-panel and keeps the menu open.
  * @property {string} [maxHeight] Optional max-height CSS value (e.g. `"200px"`). Enables scrolling when items exceed this height.
  * @property {string} [minWidth] Optional min-width CSS value (e.g. `"130px"`).
  * @property {*} [keydownTarget]  Optional override for the keyboard navigation target. By default `on()` listens
@@ -82,6 +85,7 @@ class SelectMenu {
 		this.horizontal = !!this.splitNum;
 		this.openMethod = params.openMethod;
 		this.closeMethod = params.closeMethod;
+		this.subEscMethod = params.subEscMethod || null;
 		this.maxHeight = params.maxHeight || '';
 		this.minWidth = params.minWidth || '';
 		this.#keydownTargetOverride = params.keydownTarget || null;
@@ -318,6 +322,15 @@ class SelectMenu {
 	 */
 	setItem(index) {
 		this.#selectItem(index);
+	}
+
+	/**
+	 * @description Whether a native submenu is currently open. Used by owners (e.g. a Controller) to
+	 * let ESC dismiss only the open submenu instead of the whole menu.
+	 * @returns {boolean}
+	 */
+	hasOpenSubmenu() {
+		return this.#activeSubmenuIndex > -1;
 	}
 
 	/**
@@ -856,8 +869,6 @@ class SelectMenu {
 					} else {
 						this.#select(this.index);
 					}
-				} else {
-					this.close();
 				}
 				break;
 		}
@@ -965,6 +976,24 @@ class SelectMenu {
 	 */
 	#CloseListener_key(e) {
 		if (!keyCodeMap.isEsc(e.code)) return;
+
+		if (this.#activeSubmenuIndex > -1) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			const parentIndex = this.#activeSubmenuIndex;
+			this.#closeSubmenu();
+			this.#selectItem(parentIndex);
+
+			return;
+		}
+
+		if (this.subEscMethod?.()) {
+			e.preventDefault();
+			e.stopPropagation();
+			return;
+		}
+
 		this.close();
 	}
 

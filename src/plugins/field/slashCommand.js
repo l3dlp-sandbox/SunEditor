@@ -1,7 +1,7 @@
 import { PluginField } from '../../interfaces';
 import { Controller } from '../../modules/contract';
 import { CommandMenu } from '../../modules/ui';
-import { dom, converter } from '../../helper';
+import { dom, converter, keyCodeMap } from '../../helper';
 import { ResolveButton } from '../../core/section/constructor';
 
 const { debounce } = converter;
@@ -80,6 +80,7 @@ class SlashCommand extends PluginField {
 	#lastTriggerPos = 0;
 	#anchorOffset = 0;
 	#anchorNode = null;
+	#internalClose = false;
 
 	/**
 	 * @constructor
@@ -96,10 +97,8 @@ class SlashCommand extends PluginField {
 		this.#limitSize =
 			typeof pluginOptions.limitSize === 'number' && pluginOptions.limitSize > 0 ? pluginOptions.limitSize : 10;
 		this.#emptyMessage = typeof pluginOptions.emptyMessage === 'string' ? pluginOptions.emptyMessage : '';
-
 		const delayTime = typeof pluginOptions.delayTime === 'number' ? pluginOptions.delayTime : 120;
 
-		const controllerEl = CreateHTML_controller();
 		this.#menu = new CommandMenu(this, this.$, {
 			items: Array.isArray(pluginOptions.items) ? pluginOptions.items : [],
 			resolveButton: ResolveButton,
@@ -109,25 +108,37 @@ class SlashCommand extends PluginField {
 				dir: 'ltr',
 				minWidth: '200px',
 				maxHeight: '320px',
-				closeMethod: () => this.controller.close(),
+				closeMethod: () => this.#onMenuClose(),
 			},
 		});
 
+		const controllerEl = CreateHTML_controller();
 		this.controller = new Controller(
 			this,
 			this.$,
 			controllerEl,
 			{
 				position: 'bottom',
-				initMethod: () => this.#menu.close(),
+				escGuard: () => this.#menu.hasOpenSubPanel(),
 			},
 			null,
 		);
+
 		this.#menu.attach(/** @type {HTMLElement} */ (controllerEl.firstElementChild), this.#onSelectItem.bind(this), {
 			class: 'se-block-action-menu se-slash-command-menu',
 		});
 
 		this.onInput = debounce(this.onInput.bind(this), delayTime);
+	}
+
+	/**
+	 * @hook Editor.EventManager
+	 * @description ESC while the menu is still pending must not let that scheduled `onInput` re-open the menu after the dismiss.
+	 * @type {SunEditor.Hook.Event.OnKeyDown}
+	 * @param {SunEditor.HookParams.KeyEvent} params
+	 */
+	onKeyDown({ event }) {
+		if (keyCodeMap.isEsc(event.code)) /** @type {{ cancel?: () => void }} */ (this.onInput).cancel?.();
 	}
 
 	/**
@@ -140,14 +151,14 @@ class SlashCommand extends PluginField {
 
 		const sel = this.$.selection.get();
 		if (!sel.rangeCount) {
-			this.#menu.close();
+			this.#closeMenu();
 			return;
 		}
 
 		const anchorNode = sel.anchorNode;
 		const anchorOffset = sel.anchorOffset;
 		if (!anchorNode || typeof anchorNode.textContent !== 'string') {
-			this.#menu.close();
+			this.#closeMenu();
 			return;
 		}
 
@@ -155,21 +166,21 @@ class SlashCommand extends PluginField {
 		const trigger = this.#triggerChar;
 		const lastPos = textBeforeCursor.lastIndexOf(trigger);
 		if (lastPos === -1) {
-			this.#menu.close();
+			this.#closeMenu();
 			return;
 		}
 
 		const query = textBeforeCursor.substring(lastPos + trigger.length, anchorOffset);
 		// Reject when the query contains whitespace (user moved past the slash word).
 		if (/\s/.test(query)) {
-			this.#menu.close();
+			this.#closeMenu();
 			return;
 		}
 
 		// Trigger must sit at the start of the line or be preceded by whitespace / zero-width.
 		const beforeChar = textBeforeCursor[lastPos - 1];
 		if (beforeChar && beforeChar.trim() !== '' && !dom.check.isZeroWidth(beforeChar)) {
-			this.#menu.close();
+			this.#closeMenu();
 			return;
 		}
 
@@ -180,7 +191,7 @@ class SlashCommand extends PluginField {
 				this.#renderEmpty(anchorNode);
 				this.#cacheAnchor(anchorNode, lastPos, anchorOffset);
 			} else {
-				this.#menu.close();
+				this.#closeMenu();
 			}
 			return;
 		}
@@ -190,6 +201,41 @@ class SlashCommand extends PluginField {
 		this.#menu.open();
 		this.#menu.setItem(0);
 		this.#cacheAnchor(anchorNode, lastPos, anchorOffset);
+	}
+
+	/**
+	 * @description Close the menu from the plugin itself (invalid query, or after a selection). Flags
+	 * the close as internal so `#onMenuClose` does not treat it as a user dismiss.
+	 */
+	#closeMenu() {
+		this.#internalClose = true;
+		this.#menu.close();
+		this.#internalClose = false;
+	}
+
+	/**
+	 * @description SelectMenu `closeMethod`. On a user dismiss (ESC / outside-click) — i.e. not an
+	 * internal close and not a selection — drop the typed "/query" and restore the caret to where the
+	 * trigger was, leaving the editor in a clean state. Always tears down the controller.
+	 */
+	#onMenuClose() {
+		if (!this.#internalClose) this.#removeTrigger();
+		this.#anchorNode = null;
+		this.controller.close();
+	}
+
+	/**
+	 * @description Remove the trigger + query text (`/hea`) and collapse the caret to the trigger
+	 * position. No-op if the cached anchor is stale (text changed / node detached).
+	 */
+	#removeTrigger() {
+		const anchorNode = this.#anchorNode;
+		if (!anchorNode || !anchorNode.parentNode) return;
+		if (anchorNode.textContent?.[this.#lastTriggerPos] !== this.#triggerChar) return;
+
+		this.$.selection.setRange(anchorNode, this.#lastTriggerPos, anchorNode, this.#anchorOffset);
+		const range = this.$.selection.getRange();
+		if (range && !range.collapsed) this.$.html.remove();
 	}
 
 	/**
@@ -233,9 +279,9 @@ class SlashCommand extends PluginField {
 		// (insert block, run command, etc.) operates from a clean cursor.
 		this.$.selection.setRange(anchorNode, this.#lastTriggerPos, anchorNode, this.#anchorOffset);
 		const range = this.$.selection.getRange();
-		if (range && !range.collapsed) range.deleteContents();
+		if (range && !range.collapsed) this.$.html.remove();
 
-		this.#menu.close();
+		this.#closeMenu();
 
 		this.#menu.dispatch(item, { triggerChar, query, item: item.raw });
 	}
