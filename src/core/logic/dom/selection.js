@@ -475,7 +475,12 @@ class Selection_ {
 		const statusbarHeight = this.#frameContext.get('statusbar')?.offsetHeight || 0;
 
 		if (this.#hasScrollParents) {
-			el?.scrollIntoView(scrollOption);
+			const caretRect = this.#$.format.isBrLine(el) ? ref?.getBoundingClientRect?.() : null;
+			if (caretRect?.height > 0) {
+				this.#scrollCaretIntoView(caretRect, scrollOption.behavior);
+			} else {
+				el?.scrollIntoView(scrollOption);
+			}
 
 			if (scrollOption?.behavior === 'auto' && scrollY !== _w.scrollY) {
 				if (positionToolbarHeight) {
@@ -524,8 +529,8 @@ class Selection_ {
 					behavior,
 				});
 			} else {
-				const rect = this.#$.offset.getGlobal(el);
-				const scrollMargin = viewHeight + scrollY - rect.top - elH;
+				const rectTop = refRect?.height > 0 ? refRect.top + scrollY : this.#$.offset.getGlobal(el).top;
+				const scrollMargin = viewHeight + scrollY - rectTop - elH;
 
 				if (scrollMargin - PADDING > 0 && viewHeight > scrollMargin + PADDING + topToolbarH) return;
 
@@ -544,7 +549,8 @@ class Selection_ {
 			const targetTop = hasRefRect ? refRect.top : el.getBoundingClientRect().top;
 			const innerTop = isIframe ? targetTop : targetTop - wwFrame.getBoundingClientRect().top;
 
-			const keepLocalScroll = innerTop - PADDING > 0 && innerTop + PADDING <= viewHeight;
+			const topSafe = isBottom ? 0 : toolbarHeight;
+			const keepLocalScroll = innerTop >= topSafe && innerTop + PADDING <= viewHeight;
 			const rectScroll = isBottom
 				? innerTop - PADDING > 0
 					? innerTop + PADDING - viewHeight + toolbarHeight
@@ -596,6 +602,34 @@ class Selection_ {
 					behavior,
 				});
 			}
+		}
+	}
+
+	/**
+	 * @description Scroll the caret rect into view across all scroll-parents (and the window), non-destructively.
+	 * @param {DOMRect} caretRect Caret rect in viewport coordinates (`range.getBoundingClientRect()`).
+	 * @param {ScrollBehavior} [behavior] Scroll behavior.
+	 */
+	#scrollCaretIntoView(caretRect, behavior) {
+		let { top, bottom } = caretRect;
+		const containers = [...(this.#kernel._eventOrchestrator.scrollparents || []), _w];
+
+		for (const container of containers) {
+			const isWindow = container === _w;
+			const viewTop = isWindow ? 0 : /** @type {HTMLElement} */ (container).getBoundingClientRect().top;
+			const viewBottom = isWindow
+				? this.#store.get('currentViewportHeight')
+				: /** @type {HTMLElement} */ (container).getBoundingClientRect().bottom;
+
+			let delta = 0;
+			if (top < viewTop) delta = top - viewTop;
+			else if (bottom > viewBottom) delta = bottom - viewBottom;
+			if (delta === 0) continue;
+
+			container.scrollBy({ top: delta, behavior });
+
+			top -= delta;
+			bottom -= delta;
 		}
 	}
 
