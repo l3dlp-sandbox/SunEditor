@@ -13,3 +13,8 @@ Full API: `guide/custom-plugin.md`. Full conventions: `prompts/coding-rules.md`.
 - **i18n**: add new keys to `src/langs/en.js` only; reference as `this.$.lang.<key>`. No hardcoded UI strings.
 
 Reference implementations: `src/plugins/command/blockquote.js` (simple), `src/plugins/dropdown/align.js` (dropdown), `src/plugins/modal/link.js` (modal+controller).
+
+**Building a selectable in-content component** (image/table/hr/pageBreak-style)? Read [[component-model]]
+first — it covers full-plugin vs launcher, the `componentDestroy`/`componentSelect` hook-name
+contract, and which components may own a controller.
+

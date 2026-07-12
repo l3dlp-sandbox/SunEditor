@@ -6,7 +6,25 @@
 - `prompts/coding-rules.md` — full enforceable conventions
 - `GUIDE.md` — architecture overview + workflow
 
-## Load-bearing invariants (detail in ARCHITECTURE.md)
+## Jump to the right section first (by edit context)
+
+`ARCHITECTURE.md` is ~650 lines. **Start** with the section that matches your edit (fast path) — you don't have to read all of it up front for a scoped change:
+
+| If you're editing… | Read first |
+|---|---|
+| Kernel init, DI, injection order, `_init()` timing | [ARCHITECTURE.md#the-2-phase-injection-strategy](../../ARCHITECTURE.md#the-2-phase-injection-strategy) + [#dependency-access-patterns](../../ARCHITECTURE.md#dependency-access-patterns) |
+| A layer/circular-import error (`check:arch` fails) | [ARCHITECTURE.md#layer-dependency-rules](../../ARCHITECTURE.md#layer-dependency-rules) |
+| Store keys, `store.set()`, subscriptions | [ARCHITECTURE.md#4-state-management-the-store](../../ARCHITECTURE.md#4-state-management-the-store) |
+| Enter/Backspace/Delete, node classification, closure blocks | [ARCHITECTURE.md#6-content-model](../../ARCHITECTURE.md#6-content-model) |
+| Keydown/event pipeline, rules/effects, 3-stage processing | [ARCHITECTURE.md#3-stage-event-processing](../../ARCHITECTURE.md#3-stage-event-processing) + [#event-pipeline-internal](../../ARCHITECTURE.md#event-pipeline-internal) |
+| Multi-root / per-frame (`frameContext`) behavior | [ARCHITECTURE.md#7-multi-root-architecture](../../ARCHITECTURE.md#7-multi-root-architecture) |
+| Component select/delete, controllers, launchers | [[component-model]] rule (then `guide/custom-plugin.md#component-hooks-editorcomponent-interface`) |
+
+**When one section isn't enough, read the whole `ARCHITECTURE.md`.** The hazard core code guards
+against is a local-looking edit breaking distant code, so escalate to the full doc when your
+change: spans multiple rows of the table above, crosses subsystems (DI ↔ Store ↔ events),
+alters an invariant/contract rather than logic inside one, or you can't tell how it interlocks.
+Fast path is the default; full read is the safety net — not optional when the edit is broad.
 
 - **Layers**: L1 Kernel → L2 Config → L3 Logic → L4 Event; `helper/*` is a leaf. **L3 modules never import each other directly** — cross-reference via the Deps bag (`this.#$.<other>`), available only after Phase 2. Need another L3 ref at init time? Do it in `_init()` (runs after Phase 2), not the constructor.
 - **No circular deps** — enforced by dependency-cruiser. Resolve via `$`, never a direct import.
