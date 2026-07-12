@@ -129,6 +129,18 @@ describe('SlashCommand plugin', () => {
 			await input('<p>go /he</p>');
 			expect(sc.controller.isOpen).toBe(true);
 		});
+
+		it('ESC (onKeyDown) cancels a pending onInput so the menu does not open after dismiss', async () => {
+			wysiwyg.innerHTML = '<p>/</p>';
+			const textNode = wysiwyg.querySelector('p').firstChild;
+			setCursor(textNode, 1);
+
+			sc.onInput(); // schedule the debounced open
+			sc.onKeyDown({ event: { code: 'Escape' } }); // ESC before it fires → cancel
+			await tick();
+
+			expect(sc.controller.isOpen).toBe(false);
+		});
 	});
 
 	describe('empty-match handling', () => {
@@ -201,6 +213,32 @@ describe('SlashCommand plugin', () => {
 			// "Heading 1" action fired and the "/head" trigger text is gone.
 			expect(items[0].action).toHaveBeenCalledTimes(1);
 			expect(wysiwyg.textContent).not.toContain('/head');
+		});
+
+		it('restores a <br> when the trigger was the empty line\'s only content', async () => {
+			// Action does nothing to the line; stripping the trigger must not leave a bare empty
+			// line (no <br>), which collapses to zero height and disappears. See html.remove use.
+			const items = ITEMS();
+			destroyTestEditor(editor);
+			editor = createTestEditor({
+				plugins: { slashCommand },
+				buttonList: [],
+				slashCommand: { items, delayTime: 0 },
+			});
+			await waitForEditorReady(editor);
+			wysiwyg = editor.$.frameContext.get('wysiwyg');
+			sc = editor.$.plugins.slashCommand;
+			editor.$.store.set('hasFocus', true);
+
+			await input('<p>/head</p>');
+			const row = document.querySelector('.se-slash-command-menu .se-select-item');
+			row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+			await tick();
+
+			const line = wysiwyg.querySelector('p');
+			expect(line).toBeTruthy();
+			expect(line.textContent.replace(/​/g, '')).toBe('');
+			expect(line.querySelector('br')).toBeTruthy();
 		});
 	});
 });

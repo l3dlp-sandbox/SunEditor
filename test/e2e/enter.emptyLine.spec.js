@@ -123,7 +123,14 @@ test.describe('Enter on empty line — caret must move to the new line', () => {
 
 		expect(m.effect).toBe('enter.format.exitEmpty');
 		// exitEmpty consumes the empty <li>; the list shrinks and a default line is added.
-		expect(m.html).toBe('<ul><li>AAA</li></ul><p><br></p>');
+		// Normalize away (a) the zero-width text node placed before the <br> so the caret never
+		// sits on the <br> (Firefox native backspace/delete fix) and (b) the placeholder_line
+		// decoration the focused empty line picks up — neither is relevant to the line structure.
+		const structure = m.html
+			.replace(/​/g, '')
+			.replace(/ class="se-placeholder-line"/g, '')
+			.replace(/ data-se-placeholder-line="[^"]*"/g, '');
+		expect(structure).toBe('<ul><li>AAA</li></ul><p><br></p>');
 		// caret must be in the new line outside the list (the wysiwyg's last child)
 		const caretInExitedLine = await page.evaluate(() => {
 			const ww = document.querySelector('.se-wrapper-wysiwyg');
@@ -235,5 +242,143 @@ test.describe('Enter with a selection (breakWithSelection) — caret must land o
 		expect(r.effect).toBe('enter.format.breakWithSelection');
 		expect(r.html).toBe('<p>AB</p><p>GH</p>');
 		expect(r.caretLineIndex).toBe(1);
+	});
+});
+
+/**
+ * Regression (Firefox empty-line backspace/delete):
+ *  Backspace/Delete on an empty line are handled deterministically in the editor rules
+ *  (preventDefault + explicit merge), so the empty line is removed in ONE press in every browser
+ *  instead of depending on browser-specific native behavior (dead on a `<br>` caret in Firefox).
+ *  Because of that, the Enter effects no longer need to park the caret on a zero-width Text node —
+ *  the caret may sit on the `<br>` and backspace still works. Component-adjacent empty lines still
+ *  defer to the existing component logic.
+ */
+test.describe('Enter then Backspace/Delete on the new empty line', () => {
+	test.beforeEach(async ({ page }) => {
+		await page.goto('/');
+		await page.waitForFunction(() => window.editor_root !== undefined, { timeout: 15000 });
+	});
+
+	// The container the caret currently sits in, and whether it is a Text node (not a BR).
+	async function caretContainer(page) {
+		return await page.evaluate(() => {
+			const r = document.getSelection().getRangeAt(0);
+			const c = r.startContainer;
+			return {
+				nodeType: c.nodeType,
+				nodeName: c.nodeName,
+				isText: c.nodeType === 3,
+				onBreak: c.nodeName === 'BR',
+				html: document.querySelector('.se-wrapper-wysiwyg').innerHTML,
+				lineCount: document.querySelector('.se-wrapper-wysiwyg').children.length,
+			};
+		});
+	}
+
+	test('Enter at end edge creates a new empty line that Backspace removes in one press', async ({ page }) => {
+		await setContent(page, '<p>AAA</p><p><br></p>');
+		await clickLine(page, '1');
+		await markOriginAndHook(page);
+		await pressEnter(page);
+		const m = await caretMovement(page);
+		expect(m.effect).toBe('enter.format.breakAtEdge');
+		expect((await caretContainer(page)).lineCount).toBe(3);
+
+		// deterministic backspace removes the new empty line in one press (caret may sit on the <br>)
+		await page.keyboard.press('Backspace');
+		await page.waitForTimeout(60);
+		expect((await caretContainer(page)).lineCount).toBe(2);
+	});
+
+	test('Enter on a single empty paragraph adds a line that Backspace removes in one press', async ({ page }) => {
+		await setContent(page, '<p><br></p>');
+		await clickLine(page, '0');
+		await pressEnter(page);
+		expect((await caretContainer(page)).lineCount).toBe(2);
+
+		await page.keyboard.press('Backspace');
+		await page.waitForTimeout(60);
+		expect((await caretContainer(page)).lineCount).toBe(1);
+	});
+
+	// place a collapsed caret inside an empty line (on its ZWS text node, else the line itself)
+	async function caretOnEmptyZws(page, idx) {
+		await page.evaluate((i) => {
+			const ww = document.querySelector('.se-wrapper-wysiwyg');
+			const line = ww.children[i];
+			const $ = window.editor_root.$;
+			const first = line.firstChild;
+			if (first && first.nodeType === 3) $.selection.setRange(first, 1, first, 1);
+			else $.selection.setRange(line, 0, line, 0);
+		}, idx);
+		await page.waitForTimeout(20);
+	}
+
+	// trimmed wysiwyg text content (zero-width spaces removed)
+	async function text(page) {
+		return await page.evaluate(() =>
+			document.querySelector('.se-wrapper-wysiwyg').textContent.replace(/​/g, ''),
+		);
+	}
+
+	test('Backspace on an empty line merges into the previous line in ONE press', async ({ page }) => {
+		await setContent(page, '<p>AAA</p><p><br></p>');
+		await clickLine(page, '1'); // native caret in the empty trailing line
+		await page.keyboard.press('Backspace');
+		await page.waitForTimeout(60);
+
+		const c = await caretContainer(page);
+		expect(c.lineCount).toBe(1);
+		expect(await text(page)).toBe('AAA');
+	});
+
+	test('Delete on an empty line pulls the next line up in ONE press', async ({ page }) => {
+		await setContent(page, '<p>AAA</p><p><br></p><p>BBB</p>');
+		await clickLine(page, '1'); // native caret in the empty middle line
+		await page.keyboard.press('Delete');
+		await page.waitForTimeout(60);
+
+		const c = await caretContainer(page);
+		expect(c.lineCount).toBe(2);
+		expect(await text(page)).toBe('AAABBB');
+	});
+
+	// current component selection state
+	async function component(page) {
+		return await page.evaluate(() => {
+			const c = window.editor_root.$.component;
+			return {
+				selected: !!c.isSelected,
+				target: c.currentTarget ? c.currentTarget.nodeName : null,
+				hasTable: !!document.querySelector('.se-wrapper-wysiwyg table'),
+			};
+		});
+	}
+
+	test('Backspace on an empty line whose previous line is a component SELECTS the component (no merge)', async ({ page }) => {
+		// the empty-line merge branch must yield to the existing component handling
+		await setContent(page, '<table><tbody><tr><td>x</td></tr></tbody></table><p>​<br></p>');
+		const last = await page.evaluate(() => document.querySelector('.se-wrapper-wysiwyg').children.length - 1);
+		await caretOnEmptyZws(page, last);
+		await page.keyboard.press('Backspace');
+		await page.waitForTimeout(60);
+
+		const c = await component(page);
+		expect(c.selected).toBe(true);
+		expect(c.target).toBe('TABLE');
+		expect(c.hasTable).toBe(true); // not merged away
+	});
+
+	test('Delete on an empty line whose next line is a component SELECTS the component (no merge)', async ({ page }) => {
+		await setContent(page, '<p>AAA</p><p>​<br></p><table><tbody><tr><td>x</td></tr></tbody></table>');
+		await caretOnEmptyZws(page, 1);
+		await page.keyboard.press('Delete');
+		await page.waitForTimeout(60);
+
+		const c = await component(page);
+		expect(c.selected).toBe(true);
+		expect(c.target).toBe('TABLE');
+		expect(c.hasTable).toBe(true);
 	});
 });

@@ -27,13 +27,13 @@ describe('Core Config - Frame Context', () => {
     let mockOptions;
 
     beforeEach(() => {
-        // Create mock options
-        mockOptions = {
+        // Create mock options (a Map, matching production frameOptions `to`)
+        mockOptions = new Map(Object.entries({
             mode: 'classic',
             iframe: false,
             width: '100%',
             height: '300px'
-        };
+        }));
 
         // Create mock DOM structure
         mockDOM = {

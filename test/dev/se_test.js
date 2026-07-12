@@ -1686,10 +1686,8 @@ const options1 = {
 				keywords: ['header', 'title'],
 				group: 'Basic blocks',
 				action: ($) => {
-					const h1 = $.options.get('_defaultLine')
-						? document.createElement('H1')
-						: document.createElement('H1');
-					$.format.applyBlock(h1);
+					// Convert the current line's tag to H1 (setLine), not wrap it (applyBlock → <h1><p>…</p></h1>).
+					$.format.setLine(document.createElement('H1'));
 				},
 			},
 			{
@@ -1736,6 +1734,7 @@ const options1 = {
 	tagStyles: {
 		div: 'color',
 	},
+	// height: 'auto',
 	// textDirection: 'rtl',
 	value: `<pre style="line-height: 1.45;margin: 0px 0px 10px">
 ​dsadsa</pre>
@@ -2175,6 +2174,9 @@ const options1 = {
 
 window.editor_root = suneditor.create('#editor_classic', options1);
 // window.editor_root = suneditor.create('#scrolleditor', options1);
+
+// Expose the factory for e2e tests (e.g. creating an editor inside a scroll container).
+window.suneditor = suneditor;
 
 // suneditor.create(
 // 	appEl,

@@ -4,7 +4,7 @@
 - SelectMenu 서브메뉴 지원
 - `toolbar_innerWidth` / `innerWidth` 옵션 추가
 - `slashCommand` 플러그인 추가 — Notion/Tiptap 스타일 명령 메뉴. 트리거 문자(기본 `/`)와 메뉴 아이템을 사용자가 지정 (`src/plugins/field/slashCommand.js`)
-- `placeholder_line` 옵션 추가 — Notion 스타일 라인 placeholder. 커서가 빈 라인에 있을 때 해당 라인 위치에 출력(헤딩 폰트·들여쓰기·LTR/RTL 정확히 매칭). 기존 `placeholder`와 함께 켜져 있으면 포커스된 빈 라인에서는 라인 placeholder가 우선
+- `placeholder_line` 옵션 추가 — Notion 스타일 라인 placeholder. 커서가 빈 라인에 있을 때 해당 라인 위치에 출력. 기존 `placeholder`와 함께 켜져 있으면 포커스된 빈 라인에서는 라인 placeholder가 우선
 
 ### change
 
@@ -26,3 +26,9 @@
 - `documentType`에서 placeholder 위치가 어긋나던 문제 수정
 - 빈 줄(`<br>`만 있는 줄)을 클릭한 뒤 Enter를 누르면 새 줄이 위에 생기고 커서가 원래 줄에 남던 문제 수정 — 빈 단락/리스트 항목/헤딩 모두 커서가 새 줄로 이동
 - 선택 영역을 지정한 상태(줄 전체·여러 줄 전체 선택 포함)에서 Enter를 누를 때 커서가 위쪽 줄에 남던 문제 수정 — 커서가 아래 줄에 위치
+- Firefox에서 빈 줄(Enter로 생성 등)의 backspace/delete가 동작하지 않던 문제 수정 #1671
+- Table의 셀에 붙여널기시 자바스크립트 오류 발생으로 미작동하던 버그 수정 #1668
+- HTML 정리 시 `&nbsp;` 등 공백만 있는 텍스트가 삭제되던 문제 수정 #1667
+- `value` 등 HTML 정리 시 블록 요소 사이의 공백(`</p>\n<p>` 등)이 `<br>` 없는 죽은 라인(`<p></p>`)으로 변환되거나, 라인 내부 `<br>` 뒤의 줄바꿈(`<p><br>\n</p>`)이 공백으로 남던 문제 수정
+- 빈 줄/빈 에디터에서 Enter 시 단락이 중복 생성(빈 에디터에선 wysiwyg 컨테이너 자체가 복제)되던 문제 수정 #1657
+- 스크롤 컨테이너 안에 임베드된 에디터에서 PRE(코드블록) 안 Enter 시 스크롤이 줄이 아닌 PRE 블록 전체 기준으로 동작하던 문제 수정 — Enter 후의 실제 커서 위치 기준으로 스크롤하도록 변경
