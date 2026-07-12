@@ -232,6 +232,12 @@ declare class CommandMenu {
 	 */
 	close(): void;
 	/**
+	 * @description Whether a sub-panel (native submenu or dropdown-free flyout) is currently open.
+	 * Lets an owning Controller keep the menu open on ESC and close only the sub-panel.
+	 * @returns {boolean}
+	 */
+	hasOpenSubPanel(): boolean;
+	/**
 	 * @description Highlight a row.
 	 * @param {number} index
 	 */

@@ -169,7 +169,7 @@ export function makePorts(
 	setOnShortcutKey: (v: any) => any;
 	/**
 	 * @description Scrolls the editor view to the caret position after pressing `Enter`.
-	 * @param {Range} range Range object
+	 * @param {Range} range Pre-Enter snapshot range (fallback only).
 	 */
 	enterScrollTo(range: Range): void;
 	/**

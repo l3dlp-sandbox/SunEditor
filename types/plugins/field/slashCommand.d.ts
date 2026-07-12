@@ -158,6 +158,7 @@ declare class SlashCommand extends PluginField {
 	constructor(kernel: SunEditor.Kernel, pluginOptions: SlashCommandPluginOptions);
 	controller: Controller;
 	onInput(params: SunEditor.HookParams.InputWithData): void;
+	onKeyDown(params: SunEditor.HookParams.KeyEvent): void | boolean;
 	#private;
 }
 import { PluginField } from '../../interfaces';

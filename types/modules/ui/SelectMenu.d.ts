@@ -31,6 +31,12 @@ export type SelectMenuParams = {
 	 */
 	closeMethod?: () => void;
 	/**
+	 * Optional owner hook invoked on ESC before the menu closes.
+	 * Return `true` if it dismissed an owner-managed sub-panel (e.g. CommandMenu's flyout), so ESC only
+	 * closes that sub-panel and keeps the menu open.
+	 */
+	subEscMethod?: () => boolean;
+	/**
 	 * Optional max-height CSS value (e.g. `"200px"`). Enables scrolling when items exceed this height.
 	 */
 	maxHeight?: string;
@@ -60,6 +66,9 @@ export type SelectMenuParams = {
  * @property {number} [splitNum=0] Optional split number for horizontal positioning; defines how many items per row
  * @property {() => void} [openMethod] Optional method to call when the menu is opened
  * @property {() => void} [closeMethod] Optional method to call when the menu is closed
+ * @property {() => boolean} [subEscMethod] Optional owner hook invoked on ESC before the menu closes.
+ * Return `true` if it dismissed an owner-managed sub-panel (e.g. CommandMenu's flyout), so ESC only
+ * closes that sub-panel and keeps the menu open.
  * @property {string} [maxHeight] Optional max-height CSS value (e.g. `"200px"`). Enables scrolling when items exceed this height.
  * @property {string} [minWidth] Optional min-width CSS value (e.g. `"130px"`).
  * @property {*} [keydownTarget]  Optional override for the keyboard navigation target. By default `on()` listens
@@ -94,6 +103,7 @@ declare class SelectMenu {
 	horizontal: boolean;
 	openMethod: () => void;
 	closeMethod: () => void;
+	subEscMethod: () => boolean;
 	maxHeight: string;
 	minWidth: string;
 	/**
@@ -177,6 +187,12 @@ declare class SelectMenu {
 	 * @param {number} index Item index
 	 */
 	setItem(index: number): void;
+	/**
+	 * @description Whether a native submenu is currently open. Used by owners (e.g. a Controller) to
+	 * let ESC dismiss only the open submenu instead of the whole menu.
+	 * @returns {boolean}
+	 */
+	hasOpenSubmenu(): boolean;
 	_onItem: Element;
 	#private;
 }
