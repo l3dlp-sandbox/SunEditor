@@ -132,6 +132,22 @@ export const A = {
 	 * @returns {Action}
 	 */
 	backspaceListRemoveNested: (range) => ({ t: 'backspace.list.removeNested', p: { range } }),
+	/**
+	 * @param {Element} formatEl - empty line to remove
+	 * @param {Element} prev - previous (normal) line to receive the caret
+	 * @returns {Action}
+	 */
+	backspaceEmptyLineMergePrev: (formatEl, prev) => ({ t: 'backspace.emptyLine.mergePrev', p: { formatEl, prev } }),
+
+	/**
+	 * @param {Node} rowEndBr - the `<br>` the caret sits on (end of the empty row)
+	 * @param {Node} rowStartBr - the `<br>` that starts the empty row (removed to merge it up)
+	 * @returns {Action}
+	 */
+	backspaceBrLineRowMerge: (rowEndBr, rowStartBr) => ({
+		t: 'backspace.brline.rowMerge',
+		p: { rowEndBr, rowStartBr },
+	}),
 
 	// === delete ===
 	/**
@@ -158,6 +174,18 @@ export const A = {
 		t: 'delete.list.removeNested',
 		p: { range, formatEl, rangeEl },
 	}),
+	/**
+	 * @param {Element} formatEl - empty line to remove
+	 * @param {Element} next - next (normal) line to receive the caret
+	 * @returns {Action}
+	 */
+	deleteEmptyLineMergeNext: (formatEl, next) => ({ t: 'delete.emptyLine.mergeNext', p: { formatEl, next } }),
+
+	/**
+	 * @param {Node} rowEndBr - the `<br>` the caret sits on (end of the empty row); removed to pull the next row up
+	 * @returns {Action}
+	 */
+	deleteBrLineRowMerge: (rowEndBr) => ({ t: 'delete.brline.rowMerge', p: { rowEndBr } }),
 
 	// === tab ===
 	/**
@@ -219,6 +247,18 @@ export const A = {
 	 * @returns {Action}
 	 */
 	enterFormatInsertBrNode: (wSelection) => ({ t: 'enter.format.insertBrNode', p: { wSelection } }),
+	/**
+	 * @description Insert one empty row at the caret inside a normal brLine (e.g. PRE).
+	 * @param {Range} range Caret range captured at rule time.
+	 * @returns {Action}
+	 */
+	enterBrLineInsert: (range) => ({ t: 'enter.brline.insert', p: { range } }),
+	/**
+	 * @description Exit a normal brLine — drop its trailing empty rows and add a default line after it.
+	 * @param {Element} brBlock
+	 * @returns {Action}
+	 */
+	enterBrLineExit: (brBlock) => ({ t: 'enter.brline.exit', p: { brBlock } }),
 	/**
 	 * @param {Element} formatEl
 	 * @param {Node} selectionNode

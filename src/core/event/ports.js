@@ -174,14 +174,17 @@ export function makePorts(inst, { _styleNodes }) {
 		// === enter event specific ===
 		/**
 		 * @description Scrolls the editor view to the caret position after pressing `Enter`.
-		 * @param {Range} range Range object
+		 * @param {Range} range Pre-Enter snapshot range (fallback only).
 		 */
 		enterScrollTo(range) {
 			ui._iframeAutoHeight(frameContext);
 
-			// scroll to
-			// if (isMobile && inst.scrollparents.length > 0) return;
-			selection.scrollTo(range, { behavior: 'auto', block: 'nearest', inline: 'nearest' });
+			// Scroll to the *live* post-Enter caret, not the pre-Enter `range` snapshot.
+			selection.scrollTo(selection.getRange() || range, {
+				behavior: 'auto',
+				block: 'nearest',
+				inline: 'nearest',
+			});
 		},
 		/**
 		 * @description Prevents the default behavior of the `Enter` key and refocuses the editor.

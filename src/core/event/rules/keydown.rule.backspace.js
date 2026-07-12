@@ -287,5 +287,38 @@ export function reduceBackspaceDown(actions, ports, ctx) {
 		}
 	}
 
+	// empty row inside a brLine (PRE): Enter leaves the caret on a bare <br> that begins an empty row
+	if (
+		!selectRange &&
+		format.isBrLine(formatEl) &&
+		dom.check.isBreak(range.startContainer) &&
+		range.startOffset === 0
+	) {
+		let rowStartBr = range.startContainer.previousSibling;
+		if (rowStartBr?.nodeType === 3 && dom.check.isZeroWidth(rowStartBr)) rowStartBr = rowStartBr.previousSibling;
+		if (dom.check.isBreak(rowStartBr)) {
+			actions.push(A.preventStop());
+			actions.push(A.backspaceBrLineRowMerge(range.startContainer, rowStartBr));
+			actions.push(A.historyPush(true));
+			return false;
+		}
+	}
+
+	// empty line: merge into the previous line
+	const emptyLinePrev = formatEl?.previousElementSibling;
+	if (
+		!selectRange &&
+		formatEl &&
+		format.isNormalLine(formatEl) &&
+		!dom.check.isListCell(formatEl) &&
+		dom.check.isEmptyLine(formatEl) &&
+		(format.isNormalLine(emptyLinePrev) || format.isBrLine(emptyLinePrev))
+	) {
+		actions.push(A.preventStop());
+		actions.push(A.backspaceEmptyLineMergePrev(formatEl, emptyLinePrev));
+		actions.push(A.historyPush(true));
+		return false;
+	}
+
 	return true;
 }

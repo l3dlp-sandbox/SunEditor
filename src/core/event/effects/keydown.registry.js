@@ -130,6 +130,31 @@ export default {
 		}
 	},
 
+	/** @action backspaceEmptyLineMergePrev */
+	'backspace.emptyLine.mergePrev': ({ ports }, { formatEl, prev }) => {
+		dom.utils.removeItem(formatEl);
+		caretToLineEdge(ports, prev, true);
+	},
+
+	/** @action backspaceBrLineRowMerge */
+	'backspace.brline.rowMerge': ({ ports }, { rowEndBr, rowStartBr }) => {
+		const between = rowStartBr.nextSibling;
+		if (between !== rowEndBr && between?.nodeType === 3 && dom.check.isZeroWidth(between)) {
+			dom.utils.removeItem(between);
+		}
+		const anchor = rowStartBr.previousSibling;
+		dom.utils.removeItem(rowStartBr);
+
+		if (anchor && anchor.nodeType === 3) {
+			ports.selection.setRange(anchor, anchor.textContent.length, anchor, anchor.textContent.length);
+		} else if (dom.check.isBreak(anchor)) {
+			ports.selection.setRange(rowEndBr, 0, rowEndBr, 0);
+		} else {
+			const pre = rowEndBr.parentNode;
+			ports.selection.setRange(pre, 0, pre, 0);
+		}
+	},
+
 	/** [delete] */
 
 	/** @action deleteComponentSelect */
@@ -203,6 +228,27 @@ export default {
 
 			ports.selection.setRange(con, 0, con, 0);
 			ports.history.push(true);
+		}
+	},
+
+	/** @action deleteEmptyLineMergeNext — remove an empty line, move caret to the start of the next line */
+	'delete.emptyLine.mergeNext': ({ ports }, { formatEl, next }) => {
+		dom.utils.removeItem(formatEl);
+		caretToLineEdge(ports, next, false);
+	},
+
+	/** @action deleteBrLineRowMerge — remove an empty row inside a brLine (PRE), pull the next row up */
+	'delete.brline.rowMerge': ({ ports }, { rowEndBr }) => {
+		let next = rowEndBr.nextSibling;
+		if (next?.nodeType === 3 && dom.check.isZeroWidth(next)) next = next.nextSibling; // skip a trailing zero-width
+		const pre = rowEndBr.parentNode;
+		dom.utils.removeItem(rowEndBr);
+
+		// caret → start of the pulled-up row
+		if (next && (next.nodeType === 3 || dom.check.isBreak(next))) {
+			ports.selection.setRange(next, 0, next, 0);
+		} else {
+			ports.selection.setRange(pre, pre.childNodes.length, pre, pre.childNodes.length);
 		}
 	},
 
@@ -341,13 +387,7 @@ export default {
 	'enter.line.addDefault': ({ ports }, { formatEl }) => {
 		const newFormat = ports.format.addLineAfter(formatEl);
 		const temp = newFormat.firstChild;
-		if (dom.check.isBreak(temp)) {
-			const zeroWidth = dom.utils.createTextNode(unicode.zeroWidthSpace);
-			temp.parentNode.insertBefore(zeroWidth, temp);
-			ports.selection.setRange(zeroWidth, 1, zeroWidth, 1);
-		} else {
-			ports.selection.setRange(temp, 0, temp, 0);
-		}
+		ports.selection.setRange(temp, 0, temp, 0);
 	},
 
 	/** @action enterListAddItem */
@@ -429,6 +469,34 @@ export default {
 
 		ports.selection.setRange(focusNode, 1, focusNode, 1);
 		ports.setOnShortcutKey(true);
+	},
+
+	/** @action enterBrLineInsert — insert exactly one empty row at the caret inside a normal brLine. */
+	'enter.brline.insert': ({ ports }, { range }) => {
+		// Restore the caret captured at rule time (enterPrevent may have moved the live selection).
+		ports.selection.setRange(range.startContainer, range.startOffset, range.endContainer, range.endOffset);
+		if (!range.collapsed) ports.html.remove();
+
+		const br = dom.utils.createElement('BR');
+		ports.html.insertNode(br, { afterNode: null, skipCharCount: true });
+
+		if (!br.nextSibling) br.parentNode.appendChild(dom.utils.createElement('BR'));
+		const lower = br.nextSibling;
+		ports.selection.setRange(lower, 0, lower, 0);
+		ports.setOnShortcutKey(true);
+	},
+
+	/** @action enterBrLineExit — consume only the caret's current (last) empty row and add a default line after the brLine. */
+	'enter.brline.exit': ({ ports }, { brBlock }) => {
+		const last = brBlock.lastChild;
+		if (last && (dom.check.isBreak(last) || dom.check.isZeroWidth(last.textContent))) {
+			dom.utils.removeItem(last);
+		}
+
+		const brBlockNext = /** @type {HTMLElement} */ (brBlock).nextElementSibling;
+		const newEl = ports.format.addLine(brBlock, ports.format.isLine(brBlockNext) ? brBlockNext : null);
+		dom.utils.copyFormatAttributes(newEl, brBlock);
+		ports.selection.setRange(newEl, 1, newEl, 1);
 	},
 
 	/** @action enterFormatInsertBrNode */
@@ -596,6 +664,17 @@ export default {
 		ports.selection.setRange(zeroWidth, 1, zeroWidth, 1);
 	},
 };
+
+/**
+ * Place a collapsed caret at the start or end of a line after an empty line is removed.
+ * @param {import('../ports').EventReducerPorts} ports - Ports for interacting with editor
+ * @param {Element} line - The destination line element
+ * @param {boolean} toEnd - true → caret at the line end (backspace), false → line start (delete)
+ */
+function caretToLineEdge(ports, line, toEnd) {
+	const offset = toEnd ? line.childNodes.length : 0;
+	ports.selection.setRange(line, offset, line, offset);
+}
 
 /**
  * @param {HTMLElement} formatEl - Format element

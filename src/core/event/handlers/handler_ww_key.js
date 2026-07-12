@@ -47,10 +47,7 @@ export async function OnKeyDown_wysiwyg(fc, e) {
 		if (!this.$.store.mode.isSubBalloonAlways) this._hideToolbar_sub();
 	}
 
-	// user event
-	if ((await this.$.eventManager.triggerEvent('onKeyDown', { frameContext: fc, event: e })) === false) return;
-
-	/** default key action */
+	/** default key action — normalize the Enter range before the reducer reads it */
 	if (keyCodeMap.isEnter(keyCode) && this.$.format.isLine(this.$.selection.getRange()?.startContainer)) {
 		this.$.selection.resetRangeToTextNode();
 
@@ -100,12 +97,6 @@ export async function OnKeyDown_wysiwyg(fc, e) {
 		this._onShortcutKey = false;
 	}
 
-	// plugin event
-	if (
-		(await this._callPluginEventAsync('onKeyDown', { frameContext: fc, event: e, range, line: formatEl })) === false
-	)
-		return;
-
 	// reducer / actions
 	/** @type {import('../reducers/keydown.reducer').KeydownReducerCtx} */
 	const ctx = {
@@ -126,6 +117,16 @@ export async function OnKeyDown_wysiwyg(fc, e) {
 
 	// action execute
 	const actions = await reduceKeydown(ports, ctx);
+
+	if ((await this.$.eventManager.triggerEvent('onKeyDown', { frameContext: fc, event: e })) === false) return;
+
+	// plugin event
+	if (
+		(await this._callPluginEventAsync('onKeyDown', { frameContext: fc, event: e, range, line: formatEl })) === false
+	)
+		return;
+
+	// action execute
 	await actionExecutor(actions, { ports, ctx });
 }
 

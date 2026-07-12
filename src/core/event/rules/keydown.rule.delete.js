@@ -152,5 +152,38 @@ export function reduceDeleteDown(actions, ports, ctx) {
 		return true;
 	}
 
+	// empty row inside a brLine (PRE): Enter leaves the caret on a bare <br> that ends an empty row
+	if (
+		!selectRange &&
+		format.isBrLine(formatEl) &&
+		dom.check.isBreak(range.startContainer) &&
+		range.startOffset === 0
+	) {
+		let rowStartBr = range.startContainer.previousSibling;
+		if (rowStartBr?.nodeType === 3 && dom.check.isZeroWidth(rowStartBr)) rowStartBr = rowStartBr.previousSibling;
+		if (dom.check.isBreak(rowStartBr)) {
+			actions.push(A.preventStop());
+			actions.push(A.deleteBrLineRowMerge(range.startContainer));
+			actions.push(A.historyPush(true));
+			return false;
+		}
+	}
+
+	// empty line
+	const emptyLineNext = formatEl?.nextElementSibling;
+	if (
+		!selectRange &&
+		formatEl &&
+		format.isNormalLine(formatEl) &&
+		!dom.check.isListCell(formatEl) &&
+		dom.check.isEmptyLine(formatEl) &&
+		(format.isNormalLine(emptyLineNext) || format.isBrLine(emptyLineNext))
+	) {
+		actions.push(A.preventStop());
+		actions.push(A.deleteEmptyLineMergeNext(formatEl, emptyLineNext));
+		actions.push(A.historyPush(true));
+		return false;
+	}
+
 	return true;
 }
