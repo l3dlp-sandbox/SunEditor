@@ -7,3 +7,4 @@ See **[AGENTS.md](./AGENTS.md)** — the primary entry point for AI agents in th
 @.claude/rules/plugin-authoring.md
 @.claude/rules/core-changes.md
 @.claude/rules/options-changes.md
+@.claude/rules/git-safety.md
