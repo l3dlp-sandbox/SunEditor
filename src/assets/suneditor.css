@@ -225,9 +225,7 @@
 	margin-left: var(--se-block-handle-area-width);
 }
 .sun-editor .se-wrapper.se-type-document.se-mode-block.se-type-document-header .se-placeholder {
-	margin-left: calc(
-		var(--se-block-handle-area-width) + max(var(--se-doc-info-min-width), var(--se-doc-info-width))
-	);
+	margin-left: calc(var(--se-block-handle-area-width) + max(var(--se-doc-info-min-width), var(--se-doc-info-width)));
 }
 /** --- se-type-document end ---------------------------------------------------------- */
 
@@ -2114,6 +2112,24 @@
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
 	-moz-backface-visibility: hidden;
+}
+
+.sun-editor .se-wrapper .se-placeholder-line {
+	position: relative;
+}
+
+.sun-editor .se-wrapper .se-placeholder-line::before {
+	content: attr(data-se-placeholder-line);
+	position: absolute;
+	inset: 0;
+	box-sizing: border-box;
+	padding: inherit;
+	color: var(--se-main-outline-color);
+	pointer-events: none;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-align: inherit;
 }
 
 /** --- status bar */
@@ -4759,9 +4775,7 @@
 }
 .sun-editor.se-rtl .se-wrapper.se-type-document.se-mode-block.se-type-document-header .se-placeholder {
 	margin-left: 0;
-	margin-right: calc(
-		var(--se-block-handle-area-width) + max(var(--se-doc-info-min-width), var(--se-doc-info-width))
-	);
+	margin-right: calc(var(--se-block-handle-area-width) + max(var(--se-doc-info-min-width), var(--se-doc-info-width)));
 }
 
 /* modal - footer */

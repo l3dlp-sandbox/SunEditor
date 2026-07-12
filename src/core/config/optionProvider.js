@@ -229,7 +229,19 @@ export default class OptionProvider {
 				}
 
 				if (diff.has('placeholder_line')) {
-					fc.get('placeholder_line').textContent = newRootOptions.get('placeholder_line');
+					const phLineText = newRootOptions.get('placeholder_line');
+					fc.set('placeholder_line', phLineText);
+
+					const marked = fc.get('wysiwyg').querySelector('.se-placeholder-line');
+					if (marked) {
+						if (phLineText) {
+							marked.setAttribute('data-se-placeholder-line', phLineText);
+						} else {
+							marked.classList.remove('se-placeholder-line');
+							marked.removeAttribute('data-se-placeholder-line');
+							if (!marked.getAttribute('class')) marked.removeAttribute('class');
+						}
+					}
 				}
 
 				// frame styles

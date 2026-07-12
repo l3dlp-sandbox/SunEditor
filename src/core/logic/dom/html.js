@@ -1257,6 +1257,13 @@ class HTML {
 				this._convertToCode(this.#frameContext.get('wysiwyg'), true),
 			);
 
+			const phLines = renderHTML.querySelectorAll('.se-placeholder-line');
+			for (let j = 0, jlen = phLines.length; j < jlen; j++) {
+				phLines[j].classList.remove('se-placeholder-line');
+				phLines[j].removeAttribute('data-se-placeholder-line');
+				if (!phLines[j].getAttribute('class')) phLines[j].removeAttribute('class');
+			}
+
 			const isTableCell = dom.check.isTableCell;
 			const isEmptyLine = dom.check.isEmptyLine;
 			const editableEls = [];
@@ -1684,6 +1691,23 @@ class HTML {
 	}
 
 	/**
+	 * @description Checks whether a node is a block-level container in which whitespace-only text
+	 * children are insignificant formatting whitespace (safe to drop), as opposed to an inline/line
+	 * @param {?Node} node Parent node of the whitespace text node (may be a `DocumentFragment`).
+	 * @returns {boolean} `true` if the node is a block-level container.
+	 */
+	#isBlockLevelWhitespaceContext(node) {
+		return (
+			!node ||
+			node.nodeType === 11 ||
+			dom.check.isWysiwygFrame(node) ||
+			dom.check.isList(node) ||
+			dom.check.isTableElements(node) ||
+			this.#$.format.isBlock(node)
+		);
+	}
+
+	/**
 	 * @description Fix tags that do not fit the editor format.
 	 * @param {DocumentFragment} documentFragment Document fragment `DOCUMENT_FRAGMENT_NODE` (nodeType === 11)
 	 * @param {RegExp} htmlCheckWhitelistRegExp Editor tags whitelist
@@ -1713,7 +1737,17 @@ class HTML {
 			(current) => {
 				if (current.nodeType !== 1) {
 					if (formatFilter && dom.check.isList(current.parentElement)) removeTags.push(current);
-					if (current.nodeType === 3 && !current.textContent) removeTags.push(current);
+					if (current.nodeType === 3) {
+						// Remove empty text nodes, and collapsible whitespace-only nodes that render nothing
+						if (
+							!current.textContent ||
+							(_RE_INSIGNIFICANT_WS.test(current.textContent) &&
+								(this.#isBlockLevelWhitespaceContext(current.parentNode) ||
+									!current.previousSibling !== !current.nextSibling))
+						) {
+							removeTags.push(current);
+						}
+					}
 					return false;
 				}
 
@@ -2326,6 +2360,8 @@ const _RE_LEADING_SPACE = /^\s/;
 
 // #cleanStyle
 const _RE_TAG_ATTRS = /<[^\s]+\s(.+)/;
+// #consistencyCheckOfHTML: collapsible ASCII whitespace only (excludes &nbsp;/zero-width, which are meaningful content)
+const _RE_INSIGNIFICANT_WS = /^[ \t\n\r\f\v]+$/;
 const _RE_SIZE_ATTR = /\ssize="([^"]+)"/i;
 const _RE_FACE_ATTR = /\sface="([^"]+)"/i;
 const _RE_COLOR_ATTR = /\scolor="([^"]+)"/i;

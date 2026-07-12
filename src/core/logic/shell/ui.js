@@ -863,7 +863,7 @@ class UIManager {
 	 */
 	_updatePlaceholder(fc) {
 		fc ||= this.#frameContext;
-		const isCodeView = fc.get('isCodeView');
+		const isCodeView = fc.get('isMarkdownView') || fc.get('isCodeView');
 
 		const lineShown = !isCodeView && this.#updateLinePlaceholder(fc);
 
@@ -875,62 +875,33 @@ class UIManager {
 
 	/**
 	 * @internal
-	 * @description per-line placeholder. Shown over the focused line while that line is empty
+	 * @description Notion-style per-line placeholder. Marks the focused empty line so a CSS `::before`
+	 * renders the hint text on it.
 	 * @param {SunEditor.FrameContext} fc - Frame context
-	 * @returns {boolean} Whether the line placeholder is currently visible.
+	 * @returns {boolean} Whether the line placeholder is currently shown.
 	 */
 	#updateLinePlaceholder(fc) {
-		const el = fc.get('placeholder_line');
-		if (!el) return false;
+		const text = fc.get('placeholder_line');
+		if (!text) return false;
 
-		// Needs configured text and a live caret inside this frame's editable area.
-		const node = this.#$.selection.selectionNode;
-		if (!el.textContent || !this.#store.get('hasFocus') || !node || !fc.get('wysiwyg').contains(node)) {
-			el.style.display = 'none';
-			return false;
+		const wysiwyg = fc.get('wysiwyg');
+		const prev = wysiwyg.querySelector('.se-placeholder-line');
+
+		const line = this.#store.get('hasFocus') ? this.#$.format.getLine(this.#$.selection.selectionNode) : null;
+		const target = dom.check.isEmptyLine(line) && !dom.check.isListCell(line) ? line : null;
+
+		// Single-marker invariant: drop the previous marker unless it is still the target line.
+		if (prev && prev !== target) {
+			prev.classList.remove('se-placeholder-line');
+			prev.removeAttribute('data-se-placeholder-line');
+			if (!prev.getAttribute('class')) prev.removeAttribute('class');
 		}
 
-		const line = this.#$.format.getLine(node);
-		if (!line || !this.#isLineEmpty(line)) {
-			el.style.display = 'none';
-			return false;
-		}
+		if (!target) return false;
 
-		const pos = this.#$.offset.get(line);
-		const lineEl = /** @type {HTMLElement} */ (line);
-		const cs = (line.ownerDocument.defaultView || env._w).getComputedStyle(lineEl);
-		el.style.top = pos.top + 'px';
-		el.style.margin = '0';
-		el.style.fontSize = cs.fontSize;
-		el.style.lineHeight = cs.lineHeight;
-		if (this.#$.options.get('_rtl')) {
-			// `parentElement` (the positioned `.se-wrapper`) is the same containing block as
-			// `offsetParent`, but stays resolvable while the element is still `display:none`.
-			const wrapper = /** @type {HTMLElement} */ (el.parentElement);
-			el.style.left = 'auto';
-			el.style.right = wrapper.clientWidth - (pos.left + lineEl.offsetWidth) + 'px';
-			el.style.padding = `${cs.paddingTop} ${cs.paddingRight} 0 0`;
-		} else {
-			el.style.right = 'auto';
-			el.style.left = pos.left + 'px';
-			el.style.padding = `${cs.paddingTop} 0 0 ${cs.paddingLeft}`;
-		}
-		el.style.display = 'block';
+		target.classList.add('se-placeholder-line');
+		target.setAttribute('data-se-placeholder-line', text);
 		return true;
-	}
-
-	/**
-	 * @internal
-	 * @description Whether a format line holds no text or void content — `facade.isEmpty` at line
-	 * granularity.
-	 * @param {Node} line - Format line element
-	 * @returns {boolean}
-	 */
-	#isLineEmpty(line) {
-		return (
-			dom.check.isZeroWidth(line.textContent) &&
-			!(/** @type {Element} */ (line).querySelector(this.#$.options.get('allowedEmptyTags')))
-		);
 	}
 
 	/**

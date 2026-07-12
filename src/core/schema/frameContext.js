@@ -34,7 +34,7 @@ import { get as getNumber } from '../../helper/numbers';
  * @property {HTMLTextAreaElement} markdown - Markdown view editing element (a <textarea>).
  * @property {HTMLTextAreaElement} markdownNumbers - Element displaying line numbers in markdown view mode.
  * @property {HTMLElement} placeholder - Placeholder element shown when the editor is empty.
- * @property {HTMLElement} placeholder_line - Per-line placeholder element shown on the focused empty line.
+ * @property {string} placeholder_line - Per-line placeholder text, rendered via a `::before` on the focused empty line.
  * @property {HTMLElement} statusbar - Editor status bar element (for resizing, info, etc.).
  * @property {HTMLElement} navigation - Navigation element (e.g., for outline or bookmarks).
  * @property {HTMLElement} charWrapper - Wrapper for the character counter element.
@@ -182,10 +182,10 @@ export function CreateFrameContext(
 
 	if (statusbar) UpdateStatusbarContext(statusbar, m);
 
-	const placeholder = top.querySelector('.se-placeholder:not(.se-placeholder-line)');
+	const placeholder = top.querySelector('.se-placeholder');
 	if (placeholder) m.set('placeholder', placeholder);
 
-	const placeholderLine = top.querySelector('.se-placeholder-line');
+	const placeholderLine = editorTarget.options.get('placeholder_line');
 	if (placeholderLine) m.set('placeholder_line', placeholderLine);
 
 	return m;

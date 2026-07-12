@@ -762,6 +762,9 @@ class EventOrchestrator extends KernelInjector {
 		// sticky
 		this.#toolbar._resetSticky();
 
+		// placeholder
+		this.#ui._updatePlaceholder(frameContext);
+
 		// user event
 		this.#eventManager.triggerEvent('onFocus', { frameContext, event });
 		// plugin event
