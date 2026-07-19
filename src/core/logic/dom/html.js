@@ -2228,7 +2228,9 @@ class HTML {
 				v.push(sv[0]);
 			}
 		} else if (!v || !_RE_STYLE_EQ.test(v.toString())) {
-			if (this.#cleanStyleTagKeyRegExp.test(tagName)) {
+			if (_RE_SE_COMPONENT.test(m)) {
+				v = this.#cleanStyle(m, v, '@component');
+			} else if (this.#cleanStyleTagKeyRegExp.test(tagName)) {
 				v = this.#cleanStyle(m, v, tagName);
 			} else if (this.#$.format.isLine(tagName)) {
 				v = this.#cleanStyle(m, v, '@line');
@@ -2356,6 +2358,7 @@ const _RE_TAG_NAME = /(?!<)[a-zA-Z0-9-]+/;
 const _RE_ON_HANDLER = /\s(?:on[a-z]+)\s*=\s*(?:(["'])[^"']*\1|\S+)/gi;
 const _RE_STYLE_EQ = /style=/i;
 const _RE_STYLE_ATTR = /style\s*=\s*(?:"|')[^"']*(?:"|')/;
+const _RE_SE_COMPONENT = /class\s*=\s*("|')(?:[^"']*\s)?se-component(?=[\s"'])/i;
 const _RE_LEADING_SPACE = /^\s/;
 
 // #cleanStyle
