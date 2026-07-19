@@ -10,14 +10,27 @@ import { A } from '../actions';
 const { isOSX_IOS } = env;
 
 /**
- * @description Enter is processed from the `beforeinput` event (post-IME-commit) instead of `keydown`,
- * to avoid trapping iOS/mobile IME marked-text when `keydown` mutates the DOM (see `handler_ww_input.js`).
- * Flip to `false` to instantly restore the legacy synchronous `keydown` Enter path — no other file needs
- * touching for rollback (the `keydown` Enter gate, the `handler_ww_key` normalization guard, and the
- * `beforeinput` dispatch all key off this single flag).
+ * @description Master switch for processing Enter from the `beforeinput` event (post-IME-commit) instead
+ * of `keydown`, to avoid trapping iOS/mobile IME marked-text when `keydown` mutates the DOM (see
+ * `handler_ww_input.js`).
+ *
+ * This is only the compile-time master; the effective per-environment decision is
+ * {@link useEnterFromBeforeInput}, which additionally requires that this environment actually delivers
+ * `beforeinput` at runtime (some corporate security SW / DLP / VDI drop it).
  * @type {boolean}
  */
 export const ENTER_FROM_BEFOREINPUT = true;
+
+/**
+ * @description Effective routing decision for Enter. Returns `true` (use the `beforeinput` path) only when
+ * the master switch is on AND this environment actually delivers `beforeinput` at runtime
+ * (`_canUseBeforeInput`, probed once at editor load — see `helper/env.canUseBeforeInput`).
+ * @param {SunEditor.Store} store - Editor store object
+ * @returns {boolean} `true` to route Enter through `beforeinput`, `false` to keep it on `keydown`.
+ */
+export function useEnterFromBeforeInput(store) {
+	return ENTER_FROM_BEFOREINPUT && store.get('_canUseBeforeInput');
+}
 
 /**
  * @typedef {import('../ports').EventReducerPorts} EventPorts
@@ -72,10 +85,10 @@ export async function reduceKeydown(ports, ctx) {
 			break;
 		}
 		case 'Enter' /** enter key */: {
-			// Enter is handled in `beforeinput` (IME stability) — see ENTER_FROM_BEFOREINPUT.
+			// Enter is handled in `beforeinput` (IME stability) — see useEnterFromBeforeInput.
 			// Gate only (not an early-return) so the post-switch `documentTypeRefreshHeader`
 			// still runs for a selectRange + Enter on keydown.
-			if (!ENTER_FROM_BEFOREINPUT) {
+			if (!useEnterFromBeforeInput(ctx.store)) {
 				if (reduceEnterDown(actions, ports, ctx) === false) {
 					return actions;
 				}

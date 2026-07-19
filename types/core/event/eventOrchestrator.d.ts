@@ -51,6 +51,8 @@ declare class EventOrchestrator extends KernelInjector {
 	__eventDoc: Document;
 	/** @type {string} */
 	__secopy: string;
+	/** @type {HTMLInputElement} */
+	__focusTemp: HTMLInputElement;
 	/**
 	 * @description Activates the corresponding button with the tags information of the current cursor position,
 	 * - such as `bold`, `underline`, etc., and executes the `active` method of the plugins.

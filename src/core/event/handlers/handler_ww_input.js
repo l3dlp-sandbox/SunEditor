@@ -2,7 +2,7 @@ import { dom, keyCodeMap } from '../../../helper';
 import { actionExecutor } from '../executor';
 import { makePorts } from '../ports';
 import { reduceEnterDown } from '../rules/keydown.rule.enter';
-import { ENTER_FROM_BEFOREINPUT } from '../reducers/keydown.reducer';
+import { useEnterFromBeforeInput } from '../reducers/keydown.reducer';
 
 // The Enter rule/effects never touch the retain-style node cache (a backspace concern) — a local
 // placeholder is enough to satisfy `makePorts`.
@@ -27,7 +27,10 @@ export async function OnBeforeInput_wysiwyg(fc, e) {
 	// Enter is dispatched here — not on keydown — so the IME has finished committing before the DOM
 	// mutates (iOS/mobile marked-text stability). `insertParagraph` = Enter, `insertLineBreak` = Shift+Enter.
 	// ctrl/alt+Enter are shortcuts and never produce these inputTypes, so they stay on the keydown path.
-	if (ENTER_FROM_BEFOREINPUT && (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak')) {
+	if (
+		useEnterFromBeforeInput(this.$.store) &&
+		(e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak')
+	) {
 		await dispatchEnter.call(this, fc, e);
 		return;
 	}
