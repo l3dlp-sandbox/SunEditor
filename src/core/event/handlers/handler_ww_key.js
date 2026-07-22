@@ -34,6 +34,8 @@ export async function OnKeyDown_wysiwyg(fc, e) {
 	const ctrl = (keyState.ctrl = keyCodeMap.isCtrl(e));
 	const alt = (keyState.alt = keyCodeMap.isAlt(e));
 
+	if (keyCodeMap.isEnter(keyCode)) this._enterKeyShift = shift;
+
 	if (!ctrl && fc.get('isReadOnly') && !keyCodeMap.isDirectionKey(keyCode)) {
 		e.preventDefault();
 		return false;
@@ -53,7 +55,7 @@ export async function OnKeyDown_wysiwyg(fc, e) {
 	 * on keydown re-traps the iOS/mobile IME marked-text — `dispatchEnter` runs this same normalization
 	 * later, after the IME has committed.
 	 */
-	if (!useEnterFromBeforeInput(this.$.store) && keyCodeMap.isEnter(keyCode)) {
+	if (!useEnterFromBeforeInput(this.$.store, e) && keyCodeMap.isEnter(keyCode)) {
 		const normalized = this._normalizeEnterRange();
 		if (normalized) selectionNode = normalized;
 	}

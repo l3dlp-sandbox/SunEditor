@@ -77,12 +77,16 @@ async function dispatchEnter(fc, e) {
 		selectionNode = this.$.selection.getNode();
 	}
 
-	const normalized = this._normalizeEnterRange();
-	if (normalized) selectionNode = normalized;
+	const shift = this._enterKeyShift || e.inputType === 'insertLineBreak';
+	this._enterKeyShift = false;
+
+	if (!shift) {
+		const normalized = this._normalizeEnterRange();
+		if (normalized) selectionNode = normalized;
+	}
 
 	const range = this.$.selection.getRange();
 	const formatEl = /** @type {HTMLElement} */ (this.$.format.getLine(selectionNode, null) || selectionNode);
-	const shift = e.inputType === 'insertLineBreak';
 
 	/** @type {import('../reducers/keydown.reducer').KeydownReducerCtx} */
 	const ctx = {

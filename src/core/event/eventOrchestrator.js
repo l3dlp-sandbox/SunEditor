@@ -67,6 +67,12 @@ class EventOrchestrator extends KernelInjector {
 		this.isComposing = false;
 
 		/**
+		 * @description Real Shift-key state of the most recent Enter keydown.
+		 * @type {boolean}
+		 */
+		this._enterKeyShift = false;
+
+		/**
 		 * @description An array of parent containers that can be scrolled (in descending order)
 		 * @type {Array<Element>}
 		 */

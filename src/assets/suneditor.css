@@ -4378,6 +4378,11 @@
 	direction: rtl;
 }
 
+/* toolbar */
+.sun-editor.se-rtl .se-btn-tray {
+	direction: rtl;
+}
+
 /* statusbar */
 .sun-editor.se-rtl .se-status-bar {
 	direction: rtl;

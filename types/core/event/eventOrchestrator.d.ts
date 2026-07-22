@@ -10,6 +10,11 @@ declare class EventOrchestrator extends KernelInjector {
 	 */
 	isComposing: boolean;
 	/**
+	 * @description Real Shift-key state of the most recent Enter keydown.
+	 * @type {boolean}
+	 */
+	_enterKeyShift: boolean;
+	/**
 	 * @description An array of parent containers that can be scrolled (in descending order)
 	 * @type {Array<Element>}
 	 */

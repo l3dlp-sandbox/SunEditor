@@ -3,6 +3,7 @@ import { dom, converter, markdown, numbers, unicode, clipboard, env } from '../.
 const { _d } = env;
 const REQUIRED_DATA_ATTRS = 'data-se-[^\\s]+';
 const V2_MIG_DATA_ATTRS = '|data-index|data-file-size|data-file-name|data-exp|data-font-size';
+const ZWS_RUN_REGEXP = new RegExp(unicode.zeroWidthSpace + '+', 'g');
 
 /**
  * @description All HTML related classes involved in the editing area
@@ -363,6 +364,14 @@ class HTML {
 
 		if (textStyleTagFilter) {
 			cleanData = this.#styleNodeConvertor(cleanData);
+		}
+
+		if (!_freeCodeViewMode && cleanData.includes(unicode.zeroWidthSpace)) {
+			cleanData = cleanData.replace(ZWS_RUN_REGEXP, (m, offset, str) => {
+				const boundedStart = offset === 0 || str[offset - 1] === '>';
+				const boundedEnd = offset + m.length === str.length || str[offset + m.length] === '<';
+				return boundedStart && boundedEnd ? m : '';
+			});
 		}
 
 		return cleanData;

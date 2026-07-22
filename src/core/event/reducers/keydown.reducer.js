@@ -22,14 +22,14 @@ const { isOSX_IOS } = env;
 export const ENTER_FROM_BEFOREINPUT = true;
 
 /**
- * @description Effective routing decision for Enter. Returns `true` (use the `beforeinput` path) only when
- * the master switch is on AND this environment actually delivers `beforeinput` at runtime
- * (`_canUseBeforeInput`, probed once at editor load — see `helper/env.canUseBeforeInput`).
+ * @description Routing decision for Enter. Auto-repeat (held key) fires `keydown` but not `beforeinput`,
+ * so a repeat must stay on `keydown` or only the first line break would land.
  * @param {SunEditor.Store} store - Editor store object
+ * @param {KeyboardEvent|InputEvent} [e] - Source event; a `repeat` flag forces the `keydown` path.
  * @returns {boolean} `true` to route Enter through `beforeinput`, `false` to keep it on `keydown`.
  */
-export function useEnterFromBeforeInput(store) {
-	return ENTER_FROM_BEFOREINPUT && store.get('_canUseBeforeInput');
+export function useEnterFromBeforeInput(store, e) {
+	return ENTER_FROM_BEFOREINPUT && store.get('_canUseBeforeInput') && !(/** @type {KeyboardEvent} */ (e)?.repeat);
 }
 
 /**
@@ -85,10 +85,7 @@ export async function reduceKeydown(ports, ctx) {
 			break;
 		}
 		case 'Enter' /** enter key */: {
-			// Enter is handled in `beforeinput` (IME stability) — see useEnterFromBeforeInput.
-			// Gate only (not an early-return) so the post-switch `documentTypeRefreshHeader`
-			// still runs for a selectRange + Enter on keydown.
-			if (!useEnterFromBeforeInput(ctx.store)) {
+			if (!useEnterFromBeforeInput(ctx.store, ctx.e)) {
 				if (reduceEnterDown(actions, ports, ctx) === false) {
 					return actions;
 				}
