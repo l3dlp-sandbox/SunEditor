@@ -44,12 +44,16 @@ function Constructor(editorTargets, options) {
 	if (options.plugins) {
 		const excludedPlugins = options.excludedPlugins || [];
 		const originPlugins = options.plugins;
-		const pluginsValues = (Array.isArray(originPlugins) ? originPlugins : Object.keys(originPlugins))
-			.filter((name) => !excludedPlugins.includes(name))
-			.map((name) => originPlugins[name]);
+		const pluginsEntries = Array.isArray(originPlugins)
+			? originPlugins.map((plugin) => [null, plugin])
+			: Object.keys(originPlugins).map((name) => [name, originPlugins[name]]);
 
-		for (let i = 0, len = pluginsValues.length, p; i < len; i++) {
-			p = pluginsValues[i].default || pluginsValues[i];
+		for (let i = 0, len = pluginsEntries.length, name, p; i < len; i++) {
+			name = pluginsEntries[i][0];
+			p = pluginsEntries[i][1];
+			p = p?.default || p;
+			if (!p?.key) continue;
+			if (excludedPlugins.includes(p.key) || (name !== null && excludedPlugins.includes(name))) continue;
 			plugins[p.key] = p;
 		}
 	}

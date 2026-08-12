@@ -759,7 +759,7 @@ const options1 = {
 	//     <figcaption>Home Edge Logo</figcaption>
 	// </figure>`,
 	// value: `<p><span style="color: #ff5e00;"><del><strong>fdsfdsafa</strong></del></span><br></p>`,
-	plugins: plugins,
+	plugins: [...Object.values(plugins)],
 	allowedClassName: '.+',
 	// toolbar_container: '#root_toolbar_container',
 	attributeWhitelist: { '*': 'class', img: 'scee' },
