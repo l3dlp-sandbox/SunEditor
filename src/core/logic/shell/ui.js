@@ -614,7 +614,7 @@ class UIManager {
 				rt.get('blockHandle'),
 				rt.get('blockHandlePlus'),
 				rt.get('blockHandleDrag'),
-				blockHandleOpt.menu,
+				blockHandleOpt,
 			);
 		}
 	}

@@ -330,6 +330,17 @@ export const DEFAULTS = {
  *   ],
  * }
  * ```
+ * @property {function(SunEditor.Deps, { block: HTMLElement, openMenu: function(): void }): void} [blockHandle.onPlusClick] - Runs after the plus button inserted a new line.
+ * - Adding the line is fixed behavior; this hook decides what happens next. Nothing does by default.
+ * - `block` is the new line, already focused. `openMenu()` opens the block handle's own `menu`.
+ * ```js
+ * blockHandle: {
+ *   // open the block handle menu
+ *   onPlusClick: ($, { openMenu }) => openMenu(),
+ *   // ...or the slash command menu
+ *   onPlusClick: ($, { block }) => $.plugins.slashCommand.open(block),
+ * }
+ * ```
  * @property {string} [type=""] - Editor type. Use `"document"` for a document-style layout, with optional sub-types after `:`.
  * ```js
  * // type
